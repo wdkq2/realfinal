@@ -19,6 +19,7 @@ The "특징 검색" tab sends your prompt directly to OpenAI. The API returns fi
 ### Scenario storage
 The "시나리오 저장소" tab lists all scenarios and completed trades. Select a scenario and press **뉴스 검색** to view related headlines, then **접기** to hide the results.
 
+n
 ### News API
 To fetch news headlines, set the following environment variables for Naver's open API:
 
