@@ -16,6 +16,9 @@ A simple robo advisor example providing a web interface for scenario-based inves
 ### Feature search
 The "특징 검색" tab sends your prompt directly to OpenAI. The API returns five stock codes in JSON format, which the app then uses to fetch the latest price and PER for display.
 
+### Scenario storage
+The "시나리오 저장소" tab lists all scenarios and completed trades. Select a scenario and press **뉴스 검색** to view related headlines, then **접기** to hide the results.
+
 ### News API
 To fetch news headlines, set the following environment variables for Naver's open API:
 

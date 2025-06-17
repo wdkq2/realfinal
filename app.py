@@ -28,6 +28,16 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
+def scenario_table_data():
+    """Return list representation of scenarios for a Dataframe."""
+    return [[s["time"], s["desc"], s["symbol"], s["qty"], s["keywords"]] for s in scenarios]
+
+
+def scenario_options():
+    """Dropdown options for selecting a scenario."""
+    return [f"{i}. {s['desc']}" for i, s in enumerate(scenarios)]
+
+
 TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -219,7 +229,8 @@ def get_stock_info(symbol):
         name = data.get("stockName", symbol)
         price = int(float(data.get("closePrice", 0)))
         return {"name": name, "price": price}
-    except Exception as e:
+    msg = (
+    return msg, scenario_table_data(), scenario_options()
         print("Naver price error", e)
 
     for item in sample_financials:
@@ -287,6 +298,23 @@ def fetch_news(keywords):
         try:
             r = requests.get(url, timeout=10)
             data = r.json()
+def show_scenario_news(choice):
+    """Fetch news for the selected scenario."""
+    if not choice:
+        return gr.update(visible=True, value="시나리오를 선택하세요.")
+    try:
+        idx = int(choice.split(".")[0])
+        sc = scenarios[idx]
+    except (ValueError, IndexError):
+        return gr.update(visible=True, value="Invalid selection")
+    news = fetch_news(sc["keywords"])
+    return gr.update(visible=True, value=news)
+
+
+def hide_news():
+    return gr.update(value="", visible=False)
+
+
         except Exception as e:
             return f"Request error: {e}"
         articles = data.get("articles", [])[:3]
@@ -394,7 +422,14 @@ def trade_current():
         })
         current_scenario = None
     data = [[h["time"], h["scenario"], h["symbol"], h["name"], h["qty"], h["price"], h["total"]] for h in trade_history]
-    return msg, data
+        scenario_table = gr.Dataframe(headers=["시간", "시나리오", "종목", "수량", "키워드"], interactive=False, value=scenario_table_data())
+        scenario_select = gr.Dropdown(label="시나리오 선택", choices=scenario_options())
+        news_show_btn = gr.Button("뉴스 검색")
+        news_close_btn = gr.Button("접기")
+        scenario_news = gr.Textbox(label="뉴스 결과", visible=False)
+        news_show_btn.click(show_scenario_news, scenario_select, scenario_news)
+        news_close_btn.click(hide_news, None, scenario_news)
+        add_btn.click(add_scenario, [scenario_text, quantity, keywords, symbol], [scenario_out, scenario_table, scenario_select])
 
 
 
