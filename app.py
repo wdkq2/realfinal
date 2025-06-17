@@ -89,10 +89,10 @@ def make_hashkey(data):
         r = requests.post(
             url,
             headers={
-                "content-type": "application/json; charset=utf-8",
-                "appkey": TRADE_API_KEY,
-                "appsecret": TRADE_API_SECRET,
-            },
+    """Return a list of stock codes from OpenAI based on the prompt."""
+        "You are a financial assistant. Answer only with a JSON array of five 6-digit Korean stock codes."
+    user = f"{prompt}에 맞는 국내 주식 5개를 찾아줘. 해당 주식의 6자리 종목코드를 JSON 형식으로만 제공해줘. 대답은 오로지 종목코드만 줘야해."
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
             json=data,
             timeout=10,
         )
@@ -395,39 +395,24 @@ def execute_trade(symbol, qty):
         err = resp.text if 'resp' in locals() else str(e)
         return f"Trade error: {e} {err}"
 
-    except Exception as e:
-        return f"Trade error: {e}"
-
-
-def trade_current():
-    """Execute trade for the current scenario and record history."""
-    global current_scenario
-    if not current_scenario:
-        data = [[h["time"], h["scenario"], h["symbol"], h["name"], h["qty"], h["price"], h["total"]] for h in trade_history]
-        return "시나리오가 없습니다.", data
-    msg = execute_trade(current_scenario["symbol"], current_scenario["qty"])
-    if not msg.startswith("Trade error") and not msg.startswith("Failed"):
-        total = current_scenario["price"] * current_scenario["qty"]
-        trade_history.append({
-            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "scenario": current_scenario["desc"],
-            "symbol": current_scenario["symbol"],
-            "name": current_scenario["name"],
-            "qty": current_scenario["qty"],
-            "price": current_scenario["price"],
-            "total": total,
-        })
-        current_scenario = None
-    data = [[h["time"], h["scenario"], h["symbol"], h["name"], h["qty"], h["price"], h["total"]] for h in trade_history]
-    return msg, data
-
-
-
-
-def example_results(query):
-    """Return search results using sample DART data."""
-    return get_dart_data(query)
-
+def search_codes(prompt):
+    """Return newline-separated stock codes for the prompt using OpenAI."""
+    stocks = search_stocks_openai(prompt)
+    if not stocks:
+        return "검색 결과가 없습니다."
+    codes = []
+    for s in stocks:
+        if isinstance(s, dict):
+            code = s.get("code") or s.get("symbol")
+        else:
+            code = str(s)
+        if code:
+            codes.append(code)
+    return "\n".join(codes) if codes else "검색 결과가 없습니다."
+    with gr.Tab("특징 검색"):
+        feature_query = gr.Textbox(label="검색 프롬프트")
+        search_btn = gr.Button("종목 검색")
+        search_btn.click(search_codes, feature_query, results)
 def perform_query(_=None):
     if analysis_state.get('type') == 'dividend':
         n = analysis_state.get('count', 0)
