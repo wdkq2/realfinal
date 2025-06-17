@@ -28,7 +28,9 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
-TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411-01")
+
+TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
+
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
@@ -173,6 +175,7 @@ def get_stock_info(symbol):
         params = {
             "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": symbol,
+
         }
         try:
             r = requests.get(
@@ -203,6 +206,7 @@ def get_stock_info(symbol):
         return {"name": name, "price": price}
     except Exception as e:
         print("Naver price error", e)
+
     for item in sample_financials:
         if item["symbol"] == symbol:
             return {"name": item["corp_name"], "price": item["price"]}
@@ -386,6 +390,7 @@ def execute_trade(symbol, qty):
         portfolio[symbol] = portfolio.get(symbol, 0) + q
         msg = data.get("msg1", "trade executed")
         return f"{msg} 현재 보유 {portfolio[symbol]}주"
+
     except requests.exceptions.HTTPError as e:
         err = resp.text if 'resp' in locals() else str(e)
         return f"Trade error: {e} {err}"
