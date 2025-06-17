@@ -29,7 +29,6 @@ TRADE_API_URL = os.getenv(
 )
 
 
-
 TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
 
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
@@ -126,7 +125,6 @@ sample_financials = [
     {"corp_name": "카카오", "symbol": "035720", "corp_code": "035720", "dps": 0, "price": 60000, "per": 40.2},
     {"corp_name": "LG화학", "symbol": "051910", "corp_code": "051910", "dps": 12000, "price": 350000, "per": 15.0},
 ]
-
 
 
 
@@ -296,11 +294,11 @@ def hide_news():
     return gr.update(value="", visible=False)
 
 
-
 def run_scheduler():
     while True:
         schedule.run_pending()
         time.sleep(1)
+
 
 
 
@@ -383,14 +381,23 @@ def search_codes(prompt):
     """Send the user's prompt directly to OpenAI and return the response."""
     if not OPENAI_API_KEY:
         return "OPENAI_API_KEY가 설정되지 않았습니다."
-    openai.api_key = OPENAI_API_KEY
     system = "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."
     try:
-        resp = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
-            timeout=10,
-        )
+        if hasattr(openai, "OpenAI"):
+            client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            resp = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+                timeout=10,
+            )
+        else:
+            openai.api_key = OPENAI_API_KEY
+            resp = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+                timeout=10,
+            )
+
         return resp.choices[0].message.content.strip()
     except Exception as e:
         return f"OpenAI error: {e}"
