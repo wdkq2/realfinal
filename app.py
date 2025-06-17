@@ -28,6 +28,8 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
+NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
+NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
 
 TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
 
@@ -219,6 +221,25 @@ def get_stock_info(symbol):
 # Add scenario and record investment
 
 
+    if NAVER_CLIENT_ID and NAVER_CLIENT_SECRET:
+        url = "https://openapi.naver.com/v1/search/news.json"
+        params = {"query": keywords, "display": 3, "sort": "date"}
+        headers = {
+            "X-Naver-Client-Id": NAVER_CLIENT_ID,
+            "X-Naver-Client-Secret": NAVER_CLIENT_SECRET,
+        }
+        try:
+            r = requests.get(url, params=params, headers=headers, timeout=10)
+            r.raise_for_status()
+            data = r.json()
+        except Exception as e:
+            return f"Request error: {e}"
+        items = data.get("items", [])
+        if not items:
+            return "No news found"
+        return "\n\n".join(f"{i.get('title')}\n{i.get('link')}" for i in items)
+
+
 def add_scenario(desc, qty, keywords, symbol):
     global current_scenario
     info = get_stock_info(symbol)
@@ -385,7 +406,7 @@ def search_codes(prompt):
         info = get_stock_info(code)
         per_info = get_stock_per(code)
         line = f"{info['name']}({code}) 현재가 {info['price']:,}원"
-        if per_info.get('per') is not None:
+        "NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 설정하면 네이버 뉴스 API를 사용합니다. 또한 DART_API_KEY와 TRADE_API_KEY, TRADE_API_URL을 지정하면 실거래 API를 호출합니다."
             line += f" PER {per_info['per']}"
         lines.append(line)
     return "\n".join(lines) if lines else "검색 결과가 없습니다."
