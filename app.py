@@ -28,12 +28,12 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
-TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
+TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411-01")
+
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
-
 
 
 scenarios = []
@@ -43,6 +43,16 @@ trade_history = []
 current_scenario = None
 _token_cache = {}
 TOKEN_BUFFER_SECONDS = 60
+
+
+def scenario_table_data():
+    """Return list representation of scenarios for a Dataframe."""
+    return [[s["time"], s["desc"], s["symbol"], s["qty"], s["keywords"]] for s in scenarios]
+
+
+def scenario_options():
+    """Dropdown options for selecting a scenario."""
+    return [f"{i}. {s['desc']}" for i, s in enumerate(scenarios)]
 
 
 def get_access_token():
@@ -151,7 +161,6 @@ def search_stocks_openai(prompt):
     return []
 
 
-
 def get_stock_per(code):
     """Fetch stock name and PER from Naver's mobile API."""
     url = f"https://m.stock.naver.com/api/stock/{code}/integration"
@@ -250,11 +259,14 @@ def add_scenario(desc, qty, keywords, symbol):
     scenarios.append(scenario)
     schedule.every().day.at("08:00").do(check_news, scenario)
     total = scenario["price"] * q
-    return (
+    msg = (
+
         f"{scenario['name']} 현재가 {scenario['price']:,}원\n"
         f"주문수량 {q}주\n총 금액 {total:,}원\n'매매 실행'을 누르세요"
 
     )
+    return msg, scenario_table_data(), scenario_options()
+
 
 # Fetch latest news from Google News
 
@@ -318,10 +330,29 @@ def check_news(scenario):
     print(f"News update for {scenario['desc']}:\n{news}")
 
 
+def show_scenario_news(choice):
+    """Fetch news for the selected scenario."""
+    if not choice:
+        return gr.update(visible=True, value="시나리오를 선택하세요.")
+    try:
+        idx = int(choice.split(".")[0])
+        sc = scenarios[idx]
+    except (ValueError, IndexError):
+        return gr.update(visible=True, value="Invalid selection")
+    news = fetch_news(sc["keywords"])
+    return gr.update(visible=True, value=news)
+
+
+def hide_news():
+    return gr.update(value="", visible=False)
+
+
+
 def run_scheduler():
     while True:
         schedule.run_pending()
         time.sleep(1)
+
 
 
 def execute_trade(symbol, qty):
@@ -424,6 +455,14 @@ with gr.Blocks() as demo:
     gr.Markdown("## 간단한 로보 어드바이저 예제")
     with gr.Tab("시나리오 저장소"):
         history_table = gr.Dataframe(headers=["시간", "시나리오", "종목", "이름", "수량", "가격", "총액"], interactive=False)
+        scenario_table = gr.Dataframe(headers=["시간", "시나리오", "종목", "수량", "키워드"], interactive=False, value=scenario_table_data())
+        scenario_select = gr.Dropdown(label="시나리오 선택", choices=scenario_options())
+        news_show_btn = gr.Button("뉴스 검색")
+        news_close_btn = gr.Button("접기")
+        scenario_news = gr.Textbox(label="뉴스 결과", visible=False)
+        news_show_btn.click(show_scenario_news, scenario_select, scenario_news)
+        news_close_btn.click(hide_news, None, scenario_news)
+
 
     with gr.Tab("시나리오 투자"):
         scenario_text = gr.Textbox(label="시나리오 내용")
@@ -432,7 +471,8 @@ with gr.Blocks() as demo:
         keywords = gr.Textbox(label="뉴스 검색 키워드")
         add_btn = gr.Button("시나리오 추가")
         scenario_out = gr.Textbox(label="상태")
-        add_btn.click(add_scenario, [scenario_text, quantity, keywords, symbol], scenario_out)
+        add_btn.click(add_scenario, [scenario_text, quantity, keywords, symbol], [scenario_out, scenario_table, scenario_select])
+
         trade_btn = gr.Button("매매 실행")
         trade_result = gr.Textbox(label="매매 결과")
         trade_btn.click(trade_current, None, [trade_result, history_table])
