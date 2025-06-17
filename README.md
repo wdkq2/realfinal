@@ -15,3 +15,11 @@ A simple robo advisor example providing a web interface for scenario-based inves
 
 ### Feature search
 The "특징 검색" tab sends your prompt directly to OpenAI. The API returns five stock codes in JSON format, which the app then uses to fetch the latest price and PER for display.
+
+### News API
+To fetch news headlines, set the following environment variables for Naver's open API:
+
+```
+export NAVER_CLIENT_ID=<your id>
+export NAVER_CLIENT_SECRET=<your secret>
+```

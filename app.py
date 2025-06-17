@@ -28,12 +28,12 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
-
-
 TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
-
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
+NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
+
 
 
 scenarios = []
@@ -324,7 +324,6 @@ def run_scheduler():
         time.sleep(1)
 
 
-
 def execute_trade(symbol, qty):
     """Send an order to the trading API using the Korea Investment mock endpoint."""
     try:
@@ -421,7 +420,6 @@ def search_codes(prompt):
         lines.append(line)
     return "\n".join(lines) if lines else "검색 결과가 없습니다."
 
-
 with gr.Blocks() as demo:
     gr.Markdown("## 간단한 로보 어드바이저 예제")
     with gr.Tab("시나리오 저장소"):
@@ -448,10 +446,8 @@ with gr.Blocks() as demo:
         results = gr.Textbox(label="검색 결과")
         search_btn.click(search_codes, feature_query, results)
 
-
-
     gr.Markdown(
-        "NEWS_API_KEY가 있으면 뉴스API를 사용하고, DART_API_KEY및 TRADE_API_KEY, TRADE_API_URL을 설정하면 실 결상API를 호출합니다."
+        "NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 설정하면 네이버 뉴스 API를 사용합니다. 또한 DART_API_KEY와 TRADE_API_KEY, TRADE_API_URL을 지정하면 실거래 API를 호출합니다."
 
     )
 
