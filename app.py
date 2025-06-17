@@ -125,19 +125,31 @@ def search_stocks_openai(prompt):
     system = (
         "You are a financial assistant. Answer only with a JSON array of five 6-digit Korean stock codes."
     )
-    user = f"{prompt}에 맞는 국내 주식 5개를 찾아줘. 해당 주식의 6자리 종목코드를 JSON 형식으로만 제공해줘. 대답은 오로지 종목코드만 줘야해."
+    user = (
+        f"{prompt}에 맞는 국내 주식 5개를 찾아줘. "
+        "해당 주식의 6자리 종목코드를 JSON 배열로만 제공해줘."
+        " 대답은 오로지 종목코드만 줘야해."
+    )
+
     try:
         resp = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-
             timeout=10,
         )
-        text = resp.choices[0].message.content
-        return json.loads(text)
+        text = resp.choices[0].message.content.strip()
+        try:
+            data = json.loads(text)
+            if isinstance(data, list):
+                return data
+        except json.JSONDecodeError:
+            codes = re.findall(r"\b\d{6}\b", text)
+            if codes:
+                return [{"code": c} for c in codes]
     except Exception as e:
         print("OpenAI error", e)
-        return []
+    return []
+
 
 
 def get_stock_per(code):
@@ -249,6 +261,24 @@ def add_scenario(desc, qty, keywords, symbol):
 
 def fetch_news(keywords):
     """Return the top 3 news articles for the given keywords."""
+    if NAVER_CLIENT_ID and NAVER_CLIENT_SECRET:
+        url = "https://openapi.naver.com/v1/search/news.json"
+        params = {"query": keywords, "display": 3, "sort": "date"}
+        headers = {
+            "X-Naver-Client-Id": NAVER_CLIENT_ID,
+            "X-Naver-Client-Secret": NAVER_CLIENT_SECRET,
+        }
+        try:
+            r = requests.get(url, params=params, headers=headers, timeout=10)
+            r.raise_for_status()
+            data = r.json()
+        except Exception as e:
+            return f"Request error: {e}"
+        items = data.get("items", [])
+        if not items:
+            return "No news found"
+        return "\n\n".join(f"{i.get('title')}\n{i.get('link')}" for i in items)
+
     api_key = os.getenv("NEWS_API_KEY")
     if api_key:
         url = (
@@ -265,6 +295,7 @@ def fetch_news(keywords):
         return "\n\n".join(
             f"{a.get('title')}\n{a.get('url')}" for a in articles
         )
+
     url = "https://news.google.com/rss/search"
     params = {"q": keywords, "hl": "en-US", "gl": "US", "ceid": "US:en"}
     try:
@@ -368,6 +399,7 @@ def trade_current():
 
 
 
+
 def search_codes(prompt):
     """Query OpenAI with the prompt and show stock info for each returned code."""
     stocks = search_stocks_openai(prompt)
@@ -415,6 +447,7 @@ with gr.Blocks() as demo:
         search_btn = gr.Button("종목 검색")
         results = gr.Textbox(label="검색 결과")
         search_btn.click(search_codes, feature_query, results)
+
 
 
     gr.Markdown(
