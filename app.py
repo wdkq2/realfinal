@@ -348,12 +348,20 @@ def execute_trade(symbol, qty):
 
     except requests.exceptions.HTTPError as e:
         err = resp.text if 'resp' in locals() else str(e)
-        return f"Trade error: {e} {err}"
-
-    except Exception as e:
-        return f"Trade error: {e}"
-
-
+        if hasattr(openai, "OpenAI"):
+            client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            resp = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+                timeout=10,
+            )
+        else:
+            openai.api_key = OPENAI_API_KEY
+            resp = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+                timeout=10,
+            )
 def trade_current():
     """Execute trade for the current scenario and record history."""
     global current_scenario
