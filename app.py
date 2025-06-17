@@ -1,5 +1,4 @@
 import os
-import re
 import gradio as gr
 import requests
 import xml.etree.ElementTree as ET
@@ -100,60 +99,6 @@ def make_hashkey(data):
     try:
         r = requests.post(
             url,
-            headers={
-                "content-type": "application/json; charset=utf-8",
-                "appkey": TRADE_API_KEY,
-                "appsecret": TRADE_API_SECRET,
-            },
-            json=data,
-            timeout=10,
-        )
-        r.raise_for_status()
-        return r.json().get("HASH")
-    except Exception as e:
-        print("Hashkey error", e)
-        body = json.dumps(data, separators=(",", ":"))
-        return hashlib.sha256(body.encode()).hexdigest()
-
-
-
-# sample financial data for dividend yield calculation (예시)
-sample_financials = [
-    {"corp_name": "삼성전자", "symbol": "005930", "corp_code": "005930", "dps": 361, "price": 70000, "per": 12.3},
-    {"corp_name": "현보사", "symbol": "005380", "corp_code": "005380", "dps": 3000, "price": 200000, "per": 8.5},
-    {"corp_name": "NAVER", "symbol": "035420", "corp_code": "035420", "dps": 667, "price": 150000, "per": 20.1},
-    {"corp_name": "카카오", "symbol": "035720", "corp_code": "035720", "dps": 0, "price": 60000, "per": 40.2},
-    {"corp_name": "LG화학", "symbol": "051910", "corp_code": "051910", "dps": 12000, "price": 350000, "per": 15.0},
-]
-
-
-def search_stocks_openai(prompt):
-    """Return a list of stock codes from OpenAI based on the prompt."""
-
-    if not OPENAI_API_KEY:
-        return []
-    openai.api_key = OPENAI_API_KEY
-    system = (
-        "You are a financial assistant. Answer only with a JSON array of five 6-digit Korean stock codes."
-    )
-    user = (
-        f"{prompt}에 맞는 국내 주식 5개를 찾아줘. "
-        "해당 주식의 6자리 종목코드를 JSON 배열로만 제공해줘."
-        " 대답은 오로지 종목코드만 줘야해."
-    )
-
-    try:
-        resp = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-            timeout=10,
-        )
-        text = resp.choices[0].message.content.strip()
-        try:
-            data = json.loads(text)
-            if isinstance(data, list):
-                return data
-        except json.JSONDecodeError:
             codes = re.findall(r"\b\d{6}\b", text)
             if codes:
                 return [{"code": c} for c in codes]
@@ -398,25 +343,20 @@ def execute_trade(symbol, qty):
         msg = data.get("msg1", "trade executed")
         return f"{msg} 현재 보유 {portfolio[symbol]}주"
 
-    except requests.exceptions.HTTPError as e:
-        err = resp.text if 'resp' in locals() else str(e)
-        return f"Trade error: {e} {err}"
-
+    """Send the user's prompt directly to OpenAI and return the response."""
+    if not OPENAI_API_KEY:
+        return "OPENAI_API_KEY가 설정되지 않았습니다."
+    openai.api_key = OPENAI_API_KEY
+    system = "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."
+    try:
+        resp = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+            timeout=10,
+        )
+        return resp.choices[0].message.content.strip()
     except Exception as e:
-        return f"Trade error: {e}"
-
-
-def trade_current():
-    """Execute trade for the current scenario and record history."""
-    global current_scenario
-    if not current_scenario:
-        data = [[h["time"], h["scenario"], h["symbol"], h["name"], h["qty"], h["price"], h["total"]] for h in trade_history]
-        return "시나리오가 없습니다.", data
-    msg = execute_trade(current_scenario["symbol"], current_scenario["qty"])
-    if not msg.startswith("Trade error") and not msg.startswith("Failed"):
-        total = current_scenario["price"] * current_scenario["qty"]
-        trade_history.append({
-            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        return f"OpenAI error: {e}"
             "scenario": current_scenario["desc"],
             "symbol": current_scenario["symbol"],
             "name": current_scenario["name"],
