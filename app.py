@@ -28,6 +28,7 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
+
 TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
 
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
