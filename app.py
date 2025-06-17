@@ -28,11 +28,12 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
-TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411-01")
+
+
+TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
+
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
-NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
 
 
 scenarios = []
@@ -117,6 +118,7 @@ sample_financials = [
 
 def search_stocks_openai(prompt):
     """Return a list of stock codes from OpenAI based on the prompt."""
+
     if not OPENAI_API_KEY:
         return []
     openai.api_key = OPENAI_API_KEY
@@ -128,6 +130,7 @@ def search_stocks_openai(prompt):
         "해당 주식의 6자리 종목코드를 JSON 배열로만 제공해줘."
         " 대답은 오로지 종목코드만 줘야해."
     )
+
     try:
         resp = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -146,6 +149,7 @@ def search_stocks_openai(prompt):
     except Exception as e:
         print("OpenAI error", e)
     return []
+
 
 
 def get_stock_per(code):
@@ -186,6 +190,7 @@ def get_stock_info(symbol):
         params = {
             "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": symbol,
+
         }
         try:
             r = requests.get(
@@ -216,6 +221,7 @@ def get_stock_info(symbol):
         return {"name": name, "price": price}
     except Exception as e:
         print("Naver price error", e)
+
     for item in sample_financials:
         if item["symbol"] == symbol:
             return {"name": item["corp_name"], "price": item["price"]}
@@ -319,7 +325,6 @@ def run_scheduler():
 
 
 
-
 def execute_trade(symbol, qty):
     """Send an order to the trading API using the Korea Investment mock endpoint."""
     try:
@@ -361,6 +366,7 @@ def execute_trade(symbol, qty):
         portfolio[symbol] = portfolio.get(symbol, 0) + q
         msg = data.get("msg1", "trade executed")
         return f"{msg} 현재 보유 {portfolio[symbol]}주"
+
     except requests.exceptions.HTTPError as e:
         err = resp.text if 'resp' in locals() else str(e)
         return f"Trade error: {e} {err}"
@@ -415,6 +421,7 @@ def search_codes(prompt):
         lines.append(line)
     return "\n".join(lines) if lines else "검색 결과가 없습니다."
 
+
 with gr.Blocks() as demo:
     gr.Markdown("## 간단한 로보 어드바이저 예제")
     with gr.Tab("시나리오 저장소"):
@@ -441,8 +448,10 @@ with gr.Blocks() as demo:
         results = gr.Textbox(label="검색 결과")
         search_btn.click(search_codes, feature_query, results)
 
+
+
     gr.Markdown(
-        "NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 설정하면 네이버 뉴스 API를 사용합니다. 또한 DART_API_KEY와 TRADE_API_KEY, TRADE_API_URL을 지정하면 실거래 API를 호출합니다."
+        "NEWS_API_KEY가 있으면 뉴스API를 사용하고, DART_API_KEY및 TRADE_API_KEY, TRADE_API_URL을 설정하면 실 결상API를 호출합니다."
 
     )
 
