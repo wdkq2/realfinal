@@ -1,4 +1,5 @@
 import os
+
 import gradio as gr
 import requests
 import xml.etree.ElementTree as ET
@@ -27,7 +28,10 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
-TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411-01")
+
+
+TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
+
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
@@ -126,6 +130,7 @@ sample_financials = [
 
 
 
+
 def get_stock_info(symbol):
     """Return stock name and current price using the trade API when possible."""
     token = get_access_token()
@@ -141,6 +146,7 @@ def get_stock_info(symbol):
         params = {
             "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": symbol,
+
         }
         try:
             r = requests.get(
@@ -171,6 +177,7 @@ def get_stock_info(symbol):
         return {"name": name, "price": price}
     except Exception as e:
         print("Naver price error", e)
+
     for item in sample_financials:
         if item["symbol"] == symbol:
             return {"name": item["corp_name"], "price": item["price"]}
@@ -200,6 +207,7 @@ def add_scenario(desc, qty, keywords, symbol):
     schedule.every().day.at("08:00").do(check_news, scenario)
     total = scenario["price"] * q
     msg = (
+
         f"{scenario['name']} 현재가 {scenario['price']:,}원\n"
         f"주문수량 {q}주\n총 금액 {total:,}원\n'매매 실행'을 누르세요"
 
@@ -207,6 +215,7 @@ def add_scenario(desc, qty, keywords, symbol):
     table_update = gr.update(value=scenario_table_data())
     dropdown_update = gr.update(choices=scenario_options(), value=None)
     return msg, table_update, dropdown_update
+
 
 # Fetch latest news from Google News
 
@@ -287,11 +296,11 @@ def hide_news():
     return gr.update(value="", visible=False)
 
 
+
 def run_scheduler():
     while True:
         schedule.run_pending()
         time.sleep(1)
-
 
 
 
@@ -336,6 +345,7 @@ def execute_trade(symbol, qty):
         portfolio[symbol] = portfolio.get(symbol, 0) + q
         msg = data.get("msg1", "trade executed")
         return f"{msg} 현재 보유 {portfolio[symbol]}주"
+
     except requests.exceptions.HTTPError as e:
         err = resp.text if 'resp' in locals() else str(e)
         return f"Trade error: {e} {err}"
@@ -385,6 +395,7 @@ def search_codes(prompt):
     except Exception as e:
         return f"OpenAI error: {e}"
 
+
 with gr.Blocks() as demo:
     gr.Markdown("## 간단한 로보 어드바이저 예제")
     with gr.Tab("시나리오 저장소"):
@@ -397,6 +408,7 @@ with gr.Blocks() as demo:
         news_show_btn.click(show_scenario_news, scenario_select, scenario_news)
         news_close_btn.click(hide_news, None, scenario_news)
 
+
     with gr.Tab("시나리오 투자"):
         scenario_text = gr.Textbox(label="시나리오 내용")
         quantity = gr.Textbox(label="주문 수량")
@@ -405,6 +417,7 @@ with gr.Blocks() as demo:
         add_btn = gr.Button("시나리오 추가")
         scenario_out = gr.Textbox(label="상태")
         add_btn.click(add_scenario, [scenario_text, quantity, keywords, symbol], [scenario_out, scenario_table, scenario_select])
+
         trade_btn = gr.Button("매매 실행")
         trade_result = gr.Textbox(label="매매 결과")
         trade_btn.click(trade_current, None, [trade_result, history_table])
