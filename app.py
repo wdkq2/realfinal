@@ -28,7 +28,9 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
+
 TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
+
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
@@ -167,12 +169,13 @@ def get_stock_info(symbol):
             "authorization": f"Bearer {token}",
             "appkey": TRADE_API_KEY,
             "appsecret": TRADE_API_SECRET,
-            "tr_id": "VTTC8434R",
+            "tr_id": "FHKST01010100",
             "custtype": "P",
         }
         params = {
-            "fid_cond_mrkt_div_code": "J",
-            "fid_input_iscd": symbol,
+            "FID_COND_MRKT_DIV_CODE": "J",
+            "FID_INPUT_ISCD": symbol,
+
         }
         try:
             r = requests.get(
@@ -188,6 +191,22 @@ def get_stock_info(symbol):
             return {"name": name, "price": price}
         except Exception as e:
             print("Price error", e)
+
+    # fallback to Naver mobile API when trade API call fails
+    try:
+        r = requests.get(
+            f"https://m.stock.naver.com/api/stock/{symbol}/integration",
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=10,
+        )
+        r.raise_for_status()
+        data = r.json()
+        name = data.get("stockName", symbol)
+        price = int(float(data.get("closePrice", 0)))
+        return {"name": name, "price": price}
+    except Exception as e:
+        print("Naver price error", e)
+
     for item in sample_financials:
         if item["symbol"] == symbol:
             return {"name": item["corp_name"], "price": item["price"]}
@@ -220,8 +239,8 @@ def add_scenario(desc, qty, keywords, symbol):
     schedule.every().day.at("08:00").do(check_news, scenario)
     total = scenario["price"] * q
     return (
-        f"{scenario['name']} 현장가 {scenario['price']:,}원\n"
-        f"주문수량 {q}주\n합계 금액 {total:,}원\n'매매 실행'을 누르세요"
+        f"{scenario['name']} 현재가 {scenario['price']:,}원\n"
+        f"주문수량 {q}주\n총 금액 {total:,}원\n'매매 실행'을 누르세요"
 
     )
 
@@ -370,7 +389,8 @@ def execute_trade(symbol, qty):
         data = resp.json()
         portfolio[symbol] = portfolio.get(symbol, 0) + q
         msg = data.get("msg1", "trade executed")
-        return f"{msg} 현장 보유 {portfolio[symbol]}\uc8fc"
+        return f"{msg} 현재 보유 {portfolio[symbol]}주"
+
     except requests.exceptions.HTTPError as e:
         err = resp.text if 'resp' in locals() else str(e)
         return f"Trade error: {e} {err}"
