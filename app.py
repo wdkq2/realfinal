@@ -1,5 +1,5 @@
 import os
-import re
+
 import gradio as gr
 import requests
 import xml.etree.ElementTree as ET
@@ -27,6 +27,7 @@ TRADE_API_SECRET = os.getenv(
 TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
+
 
 
 TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
@@ -127,61 +128,6 @@ sample_financials = [
 ]
 
 
-def search_stocks_openai(prompt):
-    """Return a list of stock codes from OpenAI based on the prompt."""
-
-    if not OPENAI_API_KEY:
-        return []
-    openai.api_key = OPENAI_API_KEY
-    system = (
-        "You are a financial assistant. Answer only with a JSON array of five 6-digit Korean stock codes."
-    )
-    user = (
-        f"{prompt}에 맞는 국내 주식 5개를 찾아줘. "
-        "해당 주식의 6자리 종목코드를 JSON 배열로만 제공해줘."
-        " 대답은 오로지 종목코드만 줘야해."
-    )
-
-    try:
-        resp = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-            timeout=10,
-        )
-        text = resp.choices[0].message.content.strip()
-        try:
-            data = json.loads(text)
-            if isinstance(data, list):
-                return data
-        except json.JSONDecodeError:
-            codes = re.findall(r"\b\d{6}\b", text)
-            if codes:
-                return [{"code": c} for c in codes]
-    except Exception as e:
-        print("OpenAI error", e)
-    return []
-
-
-def get_stock_per(code):
-    """Fetch stock name and PER from Naver's mobile API."""
-    url = f"https://m.stock.naver.com/api/stock/{code}/integration"
-    try:
-        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-        name = data.get("stockName", code)
-        per = None
-        for item in data.get("totalInfos", []):
-            if item.get("field") == "per":
-                per = item.get("value")
-        return {"name": name, "code": code, "per": per}
-    except Exception as e:
-        print("Naver API error", e)
-        for item in sample_financials:
-            if item["symbol"] == code:
-                return {"name": item["corp_name"], "code": code, "per": item.get("per")}
-        return {"name": code, "code": code, "per": None}
-
 
 
 
@@ -266,7 +212,9 @@ def add_scenario(desc, qty, keywords, symbol):
         f"주문수량 {q}주\n총 금액 {total:,}원\n'매매 실행'을 누르세요"
 
     )
-    return msg, scenario_table_data(), scenario_options()
+    table_update = gr.update(value=scenario_table_data())
+    dropdown_update = gr.update(choices=scenario_options(), value=None)
+    return msg, table_update, dropdown_update
 
 
 # Fetch latest news from Google News
@@ -432,25 +380,21 @@ def trade_current():
 
 
 def search_codes(prompt):
-    """Query OpenAI with the prompt and show stock info for each returned code."""
-    stocks = search_stocks_openai(prompt)
-    if not stocks:
-        return "검색 결과가 없습니다."
-    lines = []
-    for s in stocks:
-        if isinstance(s, dict):
-            code = s.get("code") or s.get("symbol")
-        else:
-            code = str(s)
-        if not code:
-            continue
-        info = get_stock_info(code)
-        per_info = get_stock_per(code)
-        line = f"{info['name']}({code}) 현재가 {info['price']:,}원"
-        if per_info.get('per') is not None:
-            line += f" PER {per_info['per']}"
-        lines.append(line)
-    return "\n".join(lines) if lines else "검색 결과가 없습니다."
+    """Send the user's prompt directly to OpenAI and return the response."""
+    if not OPENAI_API_KEY:
+        return "OPENAI_API_KEY가 설정되지 않았습니다."
+    openai.api_key = OPENAI_API_KEY
+    system = "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."
+    try:
+        resp = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+            timeout=10,
+        )
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        return f"OpenAI error: {e}"
+
 
 with gr.Blocks() as demo:
     gr.Markdown("## 간단한 로보 어드바이저 예제")

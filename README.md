@@ -14,11 +14,11 @@ A simple robo advisor example providing a web interface for scenario-based inves
    The app uses Gradio and will print a public URL when `share=True`.
 
 ### Feature search
-The "특징 검색" tab sends your prompt directly to OpenAI. The API returns five stock codes in JSON format, which the app then uses to fetch the latest price and PER for display.
+The "특징 검색" tab forwards your prompt to OpenAI with the system message:
+"너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘." The model replies in Korean with detailed advice.
 
 ### Scenario storage
-The "시나리오 저장소" tab lists all scenarios and completed trades. Select a scenario and press **뉴스 검색** to view related headlines, then **접기** to hide the results.
-
+The "시나리오 저장소" tab lists all scenarios and completed trades. After you add scenarios in the "시나리오 투자" tab, the dropdown in this tab will refresh so you can pick a scenario and press **뉴스 검색** to view related headlines. Use **접기** to hide the results.
 
 ### News API
 To fetch news headlines, set the following environment variables for Naver's open API:
