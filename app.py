@@ -29,6 +29,7 @@ TRADE_API_URL = os.getenv(
 )
 
 
+
 TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
 
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
@@ -116,7 +117,6 @@ sample_financials = [
 
 
 def search_stocks_openai(prompt):
-
     """Return a list of stock codes from OpenAI based on the prompt."""
 
     if not OPENAI_API_KEY:
@@ -214,7 +214,6 @@ def get_stock_info(symbol):
         if item["symbol"] == symbol:
             return {"name": item["corp_name"], "price": item["price"]}
     return {"name": symbol, "price": 0}
-
 
 # Add scenario and record investment
 
