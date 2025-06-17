@@ -116,18 +116,21 @@ sample_financials = [
 
 
 def search_stocks_openai(prompt):
-    """Return a list of {'name': str, 'code': str} from OpenAI."""
+
+    """Return a list of stock codes from OpenAI based on the prompt."""
+
     if not OPENAI_API_KEY:
         return []
     openai.api_key = OPENAI_API_KEY
     system = (
-        "You are a financial assistant. Respond with a JSON array of objects "
-        "containing 'name' and 6-digit 'code' for Korean stocks that match the query."
+        "You are a financial assistant. Answer only with a JSON array of five 6-digit Korean stock codes."
     )
+    user = f"{prompt}에 맞는 국내 주식 5개를 찾아줘. 해당 주식의 6자리 종목코드를 JSON 형식으로만 제공해줘. 대답은 오로지 종목코드만 줘야해."
     try:
         resp = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+
             timeout=10,
         )
         text = resp.choices[0].message.content
@@ -212,8 +215,6 @@ def get_stock_info(symbol):
             return {"name": item["corp_name"], "price": item["price"]}
     return {"name": symbol, "price": 0}
 
-# analyzed query state
-analysis_state = {}
 
 # Add scenario and record investment
 
@@ -292,61 +293,6 @@ def run_scheduler():
         schedule.run_pending()
         time.sleep(1)
 
-# Simple feature query interpretation (placeholder)
-
-
-def analyze_query(query):
-    """Very naive interpretation of a natural language query."""
-    m = re.search(r"배단률.*?(\d+)\D*\uc704", query)
-    if m:
-        n = int(m.group(1))
-        analysis_state['query'] = query
-        analysis_state['type'] = 'dividend'
-        analysis_state['count'] = n
-        return f"배단률 상위 {n}\uac1c \uae30업을 \ucc3e습니다. \ub9de습니다?"
-    if "자사주" in query and "소객" in query:
-        analysis_state['query'] = query
-        analysis_state['type'] = 'buyback'
-        return "자사주 보유가 많고 소객하지 않는 회사를 \ucc3e습니다. \ub9de습니다?"
-
-    if "per" in query.lower() and ("저표가" in query or "낮" in query):
-        analysis_state['query'] = query
-        analysis_state['type'] = 'per_search'
-        return "PER 기준 \uc800표가 \uc885목 10\uac1c\ub97c \ucc3e습니다. \ub9de습니다?"
-
-    return "요청을 이해하지 \ubabb했습니다."
-
-def dividend_rank(n):
-    ranked = sorted(
-        sample_financials,
-        key=lambda x: (x['dps'] / x['price'] if x['price'] else 0),
-        reverse=True,
-    )
-    out = []
-    for comp in ranked[:n]:
-        pct = comp['dps'] / comp['price'] * 100 if comp['price'] else 0
-        out.append(f"{comp['corp_name']}({comp['symbol']}): {pct:.2f}%")
-    return "\n".join(out)
-
-# Provide example results for feature search
-
-corp_map = {item["corp_name"]: item["corp_code"] for item in sample_financials}
-
-def get_dart_data(name):
-    """Fetch company information from the DART API."""
-    code = corp_map.get(name)
-    if not code:
-        return "Company not found"
-    try:
-        resp = requests.get(
-            "https://opendart.fss.or.kr/api/company.json",
-            params={"crtfc_key": DART_API_KEY, "corp_code": code},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        return resp.text
-    except Exception as e:
-        return f"Request error: {e}"
 
 
 def execute_trade(symbol, qty):
@@ -423,31 +369,27 @@ def trade_current():
 
 
 
+def search_codes(prompt):
+    """Query OpenAI with the prompt and show stock info for each returned code."""
+    stocks = search_stocks_openai(prompt)
+    if not stocks:
+        return "검색 결과가 없습니다."
+    lines = []
+    for s in stocks:
+        if isinstance(s, dict):
+            code = s.get("code") or s.get("symbol")
+        else:
+            code = str(s)
+        if not code:
+            continue
+        info = get_stock_info(code)
+        per_info = get_stock_per(code)
+        line = f"{info['name']}({code}) 현재가 {info['price']:,}원"
+        if per_info.get('per') is not None:
+            line += f" PER {per_info['per']}"
+        lines.append(line)
+    return "\n".join(lines) if lines else "검색 결과가 없습니다."
 
-def example_results(query):
-    """Return search results using sample DART data."""
-    return get_dart_data(query)
-
-def perform_query(_=None):
-    if analysis_state.get('type') == 'dividend':
-        n = analysis_state.get('count', 0)
-        return dividend_rank(n)
-    elif analysis_state.get('type') == 'buyback':
-        return "자사주 보유량 데이터 예시"
-    elif analysis_state.get('type') == 'per_search':
-        stocks = search_stocks_openai(analysis_state.get('query', ''))
-        if not stocks:
-            return "검색 결과가 없습니다."
-        lines = []
-        for s in stocks[:10]:
-            code = s.get('code') or s.get('symbol')
-            if not code:
-                continue
-            info = get_stock_per(code)
-            lines.append(f"{info['name']}({info['code']}): PER {info['per']}")
-        return "\n".join(lines) if lines else "결과 없음"
-
-    return "분석된 내용이 없습니다."
 
 with gr.Blocks() as demo:
     gr.Markdown("## 간단한 로보 어드바이저 예제")
@@ -469,16 +411,12 @@ with gr.Blocks() as demo:
         news_btn = gr.Button("최신 뉴스 확인")
         news_out = gr.Textbox(label="뉴스 결과")
         news_btn.click(fetch_news, keywords, news_out)
-    with gr.Tab("특집 검색"):
-        feature_query = gr.Textbox(label="검색 프론트")
-        analyze_btn = gr.Button("프론트 해석")
-        analysis = gr.Textbox(label="해석 결과")
-        analyze_btn.click(analyze_query, feature_query, analysis)
-        confirm_btn = gr.Button("해석 확인")
-        cancel_btn = gr.Button("취소")
+    with gr.Tab("특징 검색"):
+        feature_query = gr.Textbox(label="검색 프롬프트")
+        search_btn = gr.Button("종목 검색")
         results = gr.Textbox(label="검색 결과")
-        confirm_btn.click(perform_query, None, results)
-        cancel_btn.click(lambda: "취소되었습니다.", None, results)
+        search_btn.click(search_codes, feature_query, results)
+
 
     gr.Markdown(
         "NEWS_API_KEY가 있으면 뉴스API를 사용하고, DART_API_KEY및 TRADE_API_KEY, TRADE_API_URL을 설정하면 실 결상API를 호출합니다."
