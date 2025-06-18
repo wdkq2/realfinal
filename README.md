@@ -13,6 +13,12 @@ A simple robo advisor example providing a web interface for scenario-based inves
    ```
    The app uses Gradio and will print a public URL when `share=True`.
 
+<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
+Set `OPENAI_API_KEY` in your environment or enter it in the **특징 검색** tab
+before searching for stocks. The key is kept in memory only.
+
+=======
+>>>>>>> main
 ### Feature search
 The "특징 검색" tab forwards your prompt to OpenAI with the system message:
 "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘." The model replies in Korean with detailed advice.
