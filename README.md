@@ -37,3 +37,4 @@ To fetch news headlines, set the following environment variables for Naver's ope
 export NAVER_CLIENT_ID=<your id>
 export NAVER_CLIENT_SECRET=<your secret>
 ```
+If these variables are not set, the app falls back to Google News RSS using Korean search parameters so results should appear for most keywords.

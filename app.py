@@ -239,7 +239,7 @@ def fetch_news(keywords):
             "X-Naver-Client-Secret": NAVER_CLIENT_SECRET,
         }
         try:
-            r = requests.get(url, params=params, headers=headers, timeout=10)
+    params = {"q": keywords, "hl": "ko", "gl": "KR", "ceid": "KR:ko"}
             r.raise_for_status()
             data = r.json()
         except Exception as e:
