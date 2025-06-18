@@ -1,5 +1,5 @@
 import os
-
+import base64
 import gradio as gr
 import requests
 import xml.etree.ElementTree as ET
@@ -28,11 +28,11 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
+
 TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai_key = OPENAI_API_KEY
-
 
 
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
@@ -153,7 +153,6 @@ def get_stock_info(symbol):
         params = {
             "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": symbol,
-
         }
         try:
             r = requests.get(
@@ -184,7 +183,6 @@ def get_stock_info(symbol):
         return {"name": name, "price": price}
     except Exception as e:
         print("Naver price error", e)
-
     for item in sample_financials:
         if item["symbol"] == symbol:
             return {"name": item["corp_name"], "price": item["price"]}
@@ -214,7 +212,6 @@ def add_scenario(desc, qty, keywords, symbol):
     schedule.every().day.at("08:00").do(check_news, scenario)
     total = scenario["price"] * q
     msg = (
-
         f"{scenario['name']} 현재가 {scenario['price']:,}원\n"
         f"주문수량 {q}주\n총 금액 {total:,}원\n'매매 실행'을 누르세요"
 
@@ -222,7 +219,6 @@ def add_scenario(desc, qty, keywords, symbol):
     table_update = gr.update(value=scenario_table_data())
     dropdown_update = gr.update(choices=scenario_options(), value=None)
     return msg, table_update, dropdown_update
-
 
 # Fetch latest news from Google News
 
@@ -352,7 +348,6 @@ def execute_trade(symbol, qty):
         portfolio[symbol] = portfolio.get(symbol, 0) + q
         msg = data.get("msg1", "trade executed")
         return f"{msg} 현재 보유 {portfolio[symbol]}주"
-
     except requests.exceptions.HTTPError as e:
         err = resp.text if 'resp' in locals() else str(e)
         return f"Trade error: {e} {err}"
@@ -386,34 +381,48 @@ def trade_current():
 
 
 
-def search_codes(prompt):
-    """Send the user's prompt directly to OpenAI and return the response."""
+def search_codes(prompt, image_path):
+    """Send the user's prompt and optional image to OpenAI."""
     if not openai_key:
-
         return "OPENAI_API_KEY가 설정되지 않았습니다."
-    system = "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."
     try:
         if hasattr(openai, "OpenAI"):
             client = openai.OpenAI(api_key=openai_key)
-
+            if image_path:
+                with open(image_path, "rb") as f:
+                    b64 = base64.b64encode(f.read()).decode()
+                content = []
+                if prompt:
+                    content.append({"type": "text", "text": prompt})
+                else:
+                    content.append({"type": "text", "text": "이미지를 설명해줘."})
+                content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
+                messages = [{"role": "user", "content": content}]
+                model = "gpt-4o"
+            else:
+                messages = [
+                    {"role": "system", "content": "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."},
+                    {"role": "user", "content": prompt},
+                ]
+                model = "gpt-3.5-turbo"
             resp = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+                model=model,
+                messages=messages,
                 timeout=10,
             )
         else:
             openai.api_key = openai_key
-
+            if image_path:
+                return "현재 openai 패키지가 이미지 입력을 지원하지 않습니다."
             resp = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
-                messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+                messages=[{"role": "system", "content": "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."}, {"role": "user", "content": prompt}],
                 timeout=10,
             )
 
         return resp.choices[0].message.content.strip()
     except Exception as e:
         return f"OpenAI error: {e}"
-
 
 with gr.Blocks() as demo:
     gr.Markdown("## 간단한 로보 어드바이저 예제")
@@ -427,7 +436,6 @@ with gr.Blocks() as demo:
         news_show_btn.click(show_scenario_news, scenario_select, scenario_news)
         news_close_btn.click(hide_news, None, scenario_news)
 
-
     with gr.Tab("시나리오 투자"):
         scenario_text = gr.Textbox(label="시나리오 내용")
         quantity = gr.Textbox(label="주문 수량")
@@ -436,7 +444,6 @@ with gr.Blocks() as demo:
         add_btn = gr.Button("시나리오 추가")
         scenario_out = gr.Textbox(label="상태")
         add_btn.click(add_scenario, [scenario_text, quantity, keywords, symbol], [scenario_out, scenario_table, scenario_select])
-
         trade_btn = gr.Button("매매 실행")
         trade_result = gr.Textbox(label="매매 결과")
         trade_btn.click(trade_current, None, [trade_result, history_table])
@@ -449,11 +456,12 @@ with gr.Blocks() as demo:
         set_key_btn = gr.Button("키 설정")
         key_status = gr.Textbox(label="상태", interactive=False)
         set_key_btn.click(set_openai_key, openai_key_input, key_status)
-
         feature_query = gr.Textbox(label="검색 프롬프트")
-        search_btn = gr.Button("종목 검색")
+        image_input = gr.Image(label="JPG 업로드", type="filepath")
+        search_btn = gr.Button("검색")
         results = gr.Textbox(label="검색 결과")
-        search_btn.click(search_codes, feature_query, results)
+        search_btn.click(search_codes, [feature_query, image_input], results)
+
 
     gr.Markdown(
         "NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 설정하면 네이버 뉴스 API를 사용합니다. 또한 DART_API_KEY와 TRADE_API_KEY, TRADE_API_URL을 지정하면 실거래 API를 호출합니다."

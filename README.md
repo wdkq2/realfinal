@@ -15,6 +15,9 @@ A simple robo advisor example providing a web interface for scenario-based inves
 
 Set `OPENAI_API_KEY` in your environment or enter it in the **특징 검색** tab
 before searching for stocks. The key is kept in memory only.
+You can also upload a JPG image in the same tab to have GPT describe the
+picture.
+
 
 ### Feature search
 The "특징 검색" tab forwards your prompt to OpenAI with the system message:
