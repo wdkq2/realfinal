@@ -28,10 +28,12 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
-TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411-01")
+
+TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai_key = OPENAI_API_KEY
+
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
 
@@ -67,8 +69,8 @@ def advice_table_data():
     """Return list representation of advice log."""
     return [[a["time"], a["text"]] for a in advice_log]
 
-
 def get_access_token():
+
     """Retrieve an access token for the trading API using /oauth2/tokenP."""
     global _token_cache
     now = datetime.utcnow()
@@ -410,6 +412,7 @@ def get_advice():
             openai.api_key = openai_key
             resp = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
+
                 messages=messages,
                 timeout=10,
             )
@@ -419,7 +422,6 @@ def get_advice():
     advice_log.append({"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "text": advice})
     table_update = gr.update(value=advice_table_data())
     return advice, table_update
-
 
 
 
@@ -447,6 +449,8 @@ def search_codes(prompt, image_path):
                     {"role": "user", "content": prompt},
                 ]
                 model = "gpt-4o-mini"
+
+
             resp = client.chat.completions.create(
                 model=model,
                 messages=messages,
@@ -459,6 +463,7 @@ def search_codes(prompt, image_path):
             resp = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "system", "content": "당신은 주식 전문가입니다. 사용자가 물어보는 주식에 대한 질문의 의도를 파악하세요. 만약 사진이 첨부되면 해당 사진을 사용자가 이해할 수 있게 쉽게 설명하세요. 그외에는 사용자 질문에 대한 간단한 설명과 추천 주식과 이유를 제공하세요."}, {"role": "user", "content": prompt}],
+
                 timeout=10,
             )
         return resp.choices[0].message.content.strip()
@@ -510,7 +515,6 @@ with gr.Blocks() as demo:
         advice_last = gr.Textbox(label="최근 조언", interactive=False)
 
     advice_btn.click(get_advice, None, [advice_result, advice_table, advice_last])
-
     gr.Markdown(
         "NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 설정하면 네이버 뉴스 API를 사용합니다. 또한 DART_API_KEY와 TRADE_API_KEY, TRADE_API_URL을 지정하면 실거래 API를 호출합니다."
 

@@ -22,6 +22,7 @@ picture.
 The "특징 검색" tab forwards your prompt to OpenAI with the system message:
 "당신은 주식 전문가입니다. 사용자가 물어보는 주식에 대한 질문의 의도를 파악하세요. 만약 사진이 첨부되면 해당 사진을 사용자가 이해할 수 있게 쉽게 설명하세요. 그외에는 사용자 질문에 대한 간단한 설명과 추천 주식과 이유를 제공하세요." Responses are generated with the `gpt-4o-mini` model.
 
+
 ### Scenario storage
 The "시나리오 저장소" tab lists all scenarios and completed trades. After you add scenarios in the "시나리오 투자" tab, the dropdown in this tab will refresh so you can pick a scenario and press **뉴스 검색** to view related headlines. Use **접기** to hide the results.
 
