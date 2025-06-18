@@ -28,10 +28,13 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
-TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411-01")
+
+TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai_key = OPENAI_API_KEY
+
+
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
 
@@ -42,6 +45,7 @@ portfolio = {}
 trade_history = []
 current_scenario = None
 advice_log = []
+
 _token_cache = {}
 TOKEN_BUFFER_SECONDS = 60
 
@@ -66,9 +70,7 @@ def scenario_options():
 def advice_table_data():
     """Return list representation of advice log."""
     return [[a["time"], a["text"]] for a in advice_log]
-
-
-def get_access_token():
+oken():
     """Retrieve an access token for the trading API using /oauth2/tokenP."""
     global _token_cache
     now = datetime.utcnow()
@@ -421,8 +423,6 @@ def get_advice():
     return advice, table_update
 
 
-
-
 def search_codes(prompt, image_path):
     """Send the user's prompt and optional image to OpenAI."""
     if not openai_key:
@@ -476,6 +476,7 @@ with gr.Blocks() as demo:
         scenario_news = gr.Textbox(label="뉴스 결과", visible=False)
         advice_btn = gr.Button("주식투자 조언받기")
         advice_result = gr.Textbox(label="조언 결과")
+
         news_show_btn.click(show_scenario_news, scenario_select, scenario_news)
         news_close_btn.click(hide_news, None, scenario_news)
 
@@ -510,6 +511,7 @@ with gr.Blocks() as demo:
         advice_last = gr.Textbox(label="최근 조언", interactive=False)
 
     advice_btn.click(get_advice, None, [advice_result, advice_table, advice_last])
+
 
     gr.Markdown(
         "NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 설정하면 네이버 뉴스 API를 사용합니다. 또한 DART_API_KEY와 TRADE_API_KEY, TRADE_API_URL을 지정하면 실거래 API를 호출합니다."
