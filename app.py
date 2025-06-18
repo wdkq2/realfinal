@@ -361,10 +361,20 @@ def execute_trade(symbol, qty):
         return f"Trade error: {e}"
 
 
-def trade_current():
-    """Execute trade for the current scenario and record history."""
-    global current_scenario
-    if not current_scenario:
+        return (
+            "OPENAI_API_KEY가 설정되지 않았습니다.",
+            gr.update(value=advice_table_data()),
+            "",
+        )
+        return (
+            "거래 기록이 없습니다.",
+            gr.update(value=advice_table_data()),
+            "",
+        )
+    advice_log.append(
+        {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "text": advice}
+    )
+    return advice, table_update, advice
         data = [[h["time"], h["scenario"], h["symbol"], h["name"], h["qty"], h["price"], h["total"]] for h in trade_history]
         return "시나리오가 없습니다.", data
     msg = execute_trade(current_scenario["symbol"], current_scenario["qty"])
