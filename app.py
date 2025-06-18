@@ -1,4 +1,5 @@
 import os
+import base64
 
 import gradio as gr
 import requests
@@ -352,14 +353,33 @@ def execute_trade(symbol, qty):
     }
     hashkey = make_hashkey(body)
     headers = {
-        "content-type": "application/json; charset=utf-8",
-        "authorization": f"Bearer {token}",
-        "appkey": TRADE_API_KEY,
-        "appsecret": TRADE_API_SECRET,
-        "tr_id": "VTTC0012U",
-        "custtype": "P",
-        "hashkey": hashkey,
-    }
+def search_codes(prompt, image_path):
+    """Send the user's prompt and optional image to OpenAI."""
+            if image_path:
+                with open(image_path, "rb") as f:
+                    b64 = base64.b64encode(f.read()).decode()
+                content = []
+                if prompt:
+                    content.append({"type": "text", "text": prompt})
+                else:
+                    content.append({"type": "text", "text": "이미지를 설명해줘."})
+                content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
+                messages = [{"role": "user", "content": content}]
+                model = "gpt-4o"
+            else:
+                messages = [
+                    {"role": "system", "content": "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."},
+                    {"role": "user", "content": prompt},
+                ]
+                model = "gpt-3.5-turbo"
+                model=model,
+                messages=messages,
+            if image_path:
+                return "현재 openai 패키지가 이미지 입력을 지원하지 않습니다."
+                messages=[{"role": "system", "content": "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."}, {"role": "user", "content": prompt}],
+        image_input = gr.Image(label="JPG 업로드", type="filepath")
+        search_btn = gr.Button("검색")
+        search_btn.click(search_codes, [feature_query, image_input], results)
     try:
         resp = requests.post(
             f"{TRADE_API_URL}/uapi/domestic-stock/v1/trading/order-cash",

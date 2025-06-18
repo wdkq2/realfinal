@@ -13,6 +13,8 @@ A simple robo advisor example providing a web interface for scenario-based inves
    ```
    The app uses Gradio and will print a public URL when `share=True`.
 
+You can also upload a JPG image in the same tab to have GPT describe the
+picture.
 <<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
 Set `OPENAI_API_KEY` in your environment or enter it in the **특징 검색** tab
 before searching for stocks. The key is kept in memory only.
