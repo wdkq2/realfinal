@@ -69,6 +69,7 @@ def advice_table_data():
     """Return list representation of advice log."""
     return [[a["time"], a["text"]] for a in advice_log]
 
+
 def get_access_token():
 
     """Retrieve an access token for the trading API using /oauth2/tokenP."""
@@ -387,9 +388,18 @@ def trade_current():
 def get_advice():
     """Call OpenAI with trade history and store the advice."""
     if not openai_key:
-        return "OPENAI_API_KEY가 설정되지 않았습니다.", gr.update(value=advice_table_data())
+        return (
+            "OPENAI_API_KEY가 설정되지 않았습니다.",
+            gr.update(value=advice_table_data()),
+            "",
+        )
     if not trade_history:
-        return "거래 기록이 없습니다.", gr.update(value=advice_table_data())
+        return (
+            "거래 기록이 없습니다.",
+            gr.update(value=advice_table_data()),
+            "",
+        )
+
     summary_lines = [
         f"{h['time']} {h['scenario']} {h['name']}({h['symbol']}) {h['qty']}주 총액 {h['total']}원"
         for h in trade_history
@@ -412,16 +422,18 @@ def get_advice():
             openai.api_key = openai_key
             resp = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
-
                 messages=messages,
                 timeout=10,
             )
         advice = resp.choices[0].message.content.strip()
     except Exception as e:
         advice = f"OpenAI error: {e}"
-    advice_log.append({"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "text": advice})
+    advice_log.append(
+        {"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "text": advice}
+    )
     table_update = gr.update(value=advice_table_data())
-    return advice, table_update
+    return advice, table_update, advice
+
 
 
 
@@ -449,7 +461,6 @@ def search_codes(prompt, image_path):
                     {"role": "user", "content": prompt},
                 ]
                 model = "gpt-4o-mini"
-
 
             resp = client.chat.completions.create(
                 model=model,
@@ -515,6 +526,7 @@ with gr.Blocks() as demo:
         advice_last = gr.Textbox(label="최근 조언", interactive=False)
 
     advice_btn.click(get_advice, None, [advice_result, advice_table, advice_last])
+
     gr.Markdown(
         "NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 설정하면 네이버 뉴스 API를 사용합니다. 또한 DART_API_KEY와 TRADE_API_KEY, TRADE_API_URL을 지정하면 실거래 API를 호출합니다."
 
