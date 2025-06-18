@@ -408,18 +408,17 @@ def get_advice():
     messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": summary}]
     try:
         if hasattr(openai, "OpenAI"):
-            client = openai.OpenAI(api_key=openai_key)
+            client = openai.OpenAI(api_key=openai_key, timeout=20)
             resp = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages,
-                timeout=10,
             )
         else:
             openai.api_key = openai_key
             resp = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
                 messages=messages,
-                timeout=10,
+                timeout=20,
             )
         advice = resp.choices[0].message.content.strip()
     except Exception as e:
