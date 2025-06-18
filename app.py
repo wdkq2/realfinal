@@ -28,18 +28,13 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
-TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411-01")
+TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai_key = OPENAI_API_KEY
-=======
 
-TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
 
-TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "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")
->>>>>>> main
+
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
 
@@ -53,7 +48,6 @@ _token_cache = {}
 TOKEN_BUFFER_SECONDS = 60
 
 
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
 def set_openai_key(key):
     """Update the OpenAI API key from user input."""
     global openai_key
@@ -61,8 +55,6 @@ def set_openai_key(key):
     return "API key set"
 
 
-=======
->>>>>>> main
 def scenario_table_data():
     """Return list representation of scenarios for a Dataframe."""
     return [[s["time"], s["desc"], s["symbol"], s["qty"], s["keywords"]] for s in scenarios]
@@ -161,10 +153,7 @@ def get_stock_info(symbol):
         params = {
             "FID_COND_MRKT_DIV_CODE": "J",
             "FID_INPUT_ISCD": symbol,
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
-=======
 
->>>>>>> main
         }
         try:
             r = requests.get(
@@ -195,10 +184,7 @@ def get_stock_info(symbol):
         return {"name": name, "price": price}
     except Exception as e:
         print("Naver price error", e)
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
-=======
 
->>>>>>> main
     for item in sample_financials:
         if item["symbol"] == symbol:
             return {"name": item["corp_name"], "price": item["price"]}
@@ -228,10 +214,7 @@ def add_scenario(desc, qty, keywords, symbol):
     schedule.every().day.at("08:00").do(check_news, scenario)
     total = scenario["price"] * q
     msg = (
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
-=======
 
->>>>>>> main
         f"{scenario['name']} 현재가 {scenario['price']:,}원\n"
         f"주문수량 {q}주\n총 금액 {total:,}원\n'매매 실행'을 누르세요"
 
@@ -240,10 +223,7 @@ def add_scenario(desc, qty, keywords, symbol):
     dropdown_update = gr.update(choices=scenario_options(), value=None)
     return msg, table_update, dropdown_update
 
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
-=======
 
->>>>>>> main
 # Fetch latest news from Google News
 
 
@@ -372,10 +352,7 @@ def execute_trade(symbol, qty):
         portfolio[symbol] = portfolio.get(symbol, 0) + q
         msg = data.get("msg1", "trade executed")
         return f"{msg} 현재 보유 {portfolio[symbol]}주"
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
-=======
 
->>>>>>> main
     except requests.exceptions.HTTPError as e:
         err = resp.text if 'resp' in locals() else str(e)
         return f"Trade error: {e} {err}"
@@ -411,48 +388,33 @@ def trade_current():
 
 def search_codes(prompt):
     """Send the user's prompt directly to OpenAI and return the response."""
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
     if not openai_key:
-=======
-    if not OPENAI_API_KEY:
->>>>>>> main
+
         return "OPENAI_API_KEY가 설정되지 않았습니다."
     system = "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."
     try:
         if hasattr(openai, "OpenAI"):
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
             client = openai.OpenAI(api_key=openai_key)
-=======
-            client = openai.OpenAI(api_key=OPENAI_API_KEY)
->>>>>>> main
+
             resp = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
                 timeout=10,
             )
         else:
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
             openai.api_key = openai_key
-=======
-            openai.api_key = OPENAI_API_KEY
->>>>>>> main
+
             resp = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
                 timeout=10,
             )
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
-=======
 
->>>>>>> main
         return resp.choices[0].message.content.strip()
     except Exception as e:
         return f"OpenAI error: {e}"
 
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
-=======
 
->>>>>>> main
 with gr.Blocks() as demo:
     gr.Markdown("## 간단한 로보 어드바이저 예제")
     with gr.Tab("시나리오 저장소"):
@@ -465,10 +427,7 @@ with gr.Blocks() as demo:
         news_show_btn.click(show_scenario_news, scenario_select, scenario_news)
         news_close_btn.click(hide_news, None, scenario_news)
 
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
-=======
 
->>>>>>> main
     with gr.Tab("시나리오 투자"):
         scenario_text = gr.Textbox(label="시나리오 내용")
         quantity = gr.Textbox(label="주문 수량")
@@ -477,10 +436,7 @@ with gr.Blocks() as demo:
         add_btn = gr.Button("시나리오 추가")
         scenario_out = gr.Textbox(label="상태")
         add_btn.click(add_scenario, [scenario_text, quantity, keywords, symbol], [scenario_out, scenario_table, scenario_select])
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
-=======
 
->>>>>>> main
         trade_btn = gr.Button("매매 실행")
         trade_result = gr.Textbox(label="매매 결과")
         trade_btn.click(trade_current, None, [trade_result, history_table])
@@ -489,13 +445,11 @@ with gr.Blocks() as demo:
         news_out = gr.Textbox(label="뉴스 결과")
         news_btn.click(fetch_news, keywords, news_out)
     with gr.Tab("특징 검색"):
-<<<<<<< vg0l2d-codex/코드를-새로운-브랜치에-업로드
         openai_key_input = gr.Textbox(label="OpenAI API Key", type="password")
         set_key_btn = gr.Button("키 설정")
         key_status = gr.Textbox(label="상태", interactive=False)
         set_key_btn.click(set_openai_key, openai_key_input, key_status)
-=======
->>>>>>> main
+
         feature_query = gr.Textbox(label="검색 프롬프트")
         search_btn = gr.Button("종목 검색")
         results = gr.Textbox(label="검색 결과")
