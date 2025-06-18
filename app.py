@@ -44,6 +44,8 @@ news_log = []
 portfolio = {}
 trade_history = []
 current_scenario = None
+advice_log = []
+
 _token_cache = {}
 TOKEN_BUFFER_SECONDS = 60
 
@@ -65,7 +67,10 @@ def scenario_options():
     return [f"{i}. {s['desc']}" for i, s in enumerate(scenarios)]
 
 
-def get_access_token():
+def advice_table_data():
+    """Return list representation of advice log."""
+    return [[a["time"], a["text"]] for a in advice_log]
+oken():
     """Retrieve an access token for the trading API using /oauth2/tokenP."""
     global _token_cache
     now = datetime.utcnow()
@@ -379,6 +384,43 @@ def trade_current():
     return msg, data
 
 
+def get_advice():
+    """Call OpenAI with trade history and store the advice."""
+    if not openai_key:
+        return "OPENAI_API_KEY가 설정되지 않았습니다.", gr.update(value=advice_table_data())
+    if not trade_history:
+        return "거래 기록이 없습니다.", gr.update(value=advice_table_data())
+    summary_lines = [
+        f"{h['time']} {h['scenario']} {h['name']}({h['symbol']}) {h['qty']}주 총액 {h['total']}원"
+        for h in trade_history
+    ]
+    summary = "\n".join(summary_lines)
+    system_prompt = (
+        "위는 사용자가 어떤 시나리오를 가지고 어떤 종목을 얼마나 샀는지의 기록입니다. "
+        "해당 기록을 살펴보고, 해당 사용자의 투자 성향을 파악하세요. 해당 성향에 따라 투자자에게 조언과 투자자가 관심있을만한 주식과 이유를 설명해주세요."
+    )
+    messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": summary}]
+    try:
+        if hasattr(openai, "OpenAI"):
+            client = openai.OpenAI(api_key=openai_key)
+            resp = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                timeout=10,
+            )
+        else:
+            openai.api_key = openai_key
+            resp = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                timeout=10,
+            )
+        advice = resp.choices[0].message.content.strip()
+    except Exception as e:
+        advice = f"OpenAI error: {e}"
+    advice_log.append({"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "text": advice})
+    table_update = gr.update(value=advice_table_data())
+    return advice, table_update
 
 
 def search_codes(prompt, image_path):
@@ -419,7 +461,6 @@ def search_codes(prompt, image_path):
                 messages=[{"role": "system", "content": "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."}, {"role": "user", "content": prompt}],
                 timeout=10,
             )
-
         return resp.choices[0].message.content.strip()
     except Exception as e:
         return f"OpenAI error: {e}"
@@ -433,6 +474,9 @@ with gr.Blocks() as demo:
         news_show_btn = gr.Button("뉴스 검색")
         news_close_btn = gr.Button("접기")
         scenario_news = gr.Textbox(label="뉴스 결과", visible=False)
+        advice_btn = gr.Button("주식투자 조언받기")
+        advice_result = gr.Textbox(label="조언 결과")
+
         news_show_btn.click(show_scenario_news, scenario_select, scenario_news)
         news_close_btn.click(hide_news, None, scenario_news)
 
@@ -461,6 +505,12 @@ with gr.Blocks() as demo:
         search_btn = gr.Button("검색")
         results = gr.Textbox(label="검색 결과")
         search_btn.click(search_codes, [feature_query, image_input], results)
+
+    with gr.Tab("조언 기록"):
+        advice_table = gr.Dataframe(headers=["시간", "조언"], interactive=False, value=advice_table_data())
+        advice_last = gr.Textbox(label="최근 조언", interactive=False)
+
+    advice_btn.click(get_advice, None, [advice_result, advice_table, advice_last])
 
 
     gr.Markdown(
