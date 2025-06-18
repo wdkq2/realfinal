@@ -14,7 +14,11 @@ A simple robo advisor example providing a web interface for scenario-based inves
    The app uses Gradio and will print a public URL when `share=True`.
 
 Set `OPENAI_API_KEY` in your environment or enter it in the **특징 검색** tab
-before searching for stocks. The key is kept in memory only.
+
+before searching for stocks. The key is kept in memory only. Ensure that your
+environment allows outbound connections to `api.openai.com`; otherwise OpenAI
+requests will fail with a timeout error.
+
 You can also upload a JPG image in the same tab to have GPT describe the
 picture.
 
@@ -37,3 +41,4 @@ To fetch news headlines, set the following environment variables for Naver's ope
 export NAVER_CLIENT_ID=<your id>
 export NAVER_CLIENT_SECRET=<your secret>
 ```
+If these variables are not set, the app falls back to Google News RSS using Korean search parameters so results should appear for most keywords.

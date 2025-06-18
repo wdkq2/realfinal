@@ -28,7 +28,6 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
-
 TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -71,7 +70,6 @@ def advice_table_data():
 
 
 def get_access_token():
-
     """Retrieve an access token for the trading API using /oauth2/tokenP."""
     global _token_cache
     now = datetime.utcnow()
@@ -267,7 +265,8 @@ def fetch_news(keywords):
         )
 
     url = "https://news.google.com/rss/search"
-    params = {"q": keywords, "hl": "en-US", "gl": "US", "ceid": "US:en"}
+    params = {"q": keywords, "hl": "ko", "gl": "KR", "ceid": "KR:ko"}
+
     try:
         r = requests.get(url, params=params, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
     except Exception as e:
@@ -412,18 +411,19 @@ def get_advice():
     messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": summary}]
     try:
         if hasattr(openai, "OpenAI"):
-            client = openai.OpenAI(api_key=openai_key)
+            client = openai.OpenAI(api_key=openai_key, timeout=20)
             resp = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages,
-                timeout=10,
+
             )
         else:
             openai.api_key = openai_key
             resp = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
                 messages=messages,
-                timeout=10,
+                timeout=30,
+
             )
         advice = resp.choices[0].message.content.strip()
     except Exception as e:
