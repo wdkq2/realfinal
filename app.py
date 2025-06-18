@@ -29,6 +29,12 @@ TRADE_API_URL = os.getenv(
 )
 
 
+advice_log = []
+def advice_table_data():
+    """Return list representation of advice log."""
+    return [[a["time"], a["text"]] for a in advice_log]
+
+
 TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -352,6 +358,45 @@ def execute_trade(symbol, qty):
         err = resp.text if 'resp' in locals() else str(e)
         return f"Trade error: {e} {err}"
 
+def get_advice():
+    """Call OpenAI with trade history and store the advice."""
+    if not openai_key:
+        return "OPENAI_API_KEY가 설정되지 않았습니다.", gr.update(value=advice_table_data())
+    if not trade_history:
+        return "거래 기록이 없습니다.", gr.update(value=advice_table_data())
+    summary_lines = [
+        f"{h['time']} {h['scenario']} {h['name']}({h['symbol']}) {h['qty']}주 총액 {h['total']}원"
+        for h in trade_history
+    ]
+    summary = "\n".join(summary_lines)
+    system_prompt = (
+        "위는 사용자가 어떤 시나리오를 가지고 어떤 종목을 얼마나 샀는지의 기록입니다. "
+        "해당 기록을 살펴보고, 해당 사용자의 투자 성향을 파악하세요. 해당 성향에 따라 투자자에게 조언과 투자자가 관심있을만한 주식과 이유를 설명해주세요."
+    )
+    messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": summary}]
+    try:
+        if hasattr(openai, "OpenAI"):
+            client = openai.OpenAI(api_key=openai_key)
+            resp = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                timeout=10,
+            )
+        else:
+            openai.api_key = openai_key
+            resp = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                timeout=10,
+            )
+        advice = resp.choices[0].message.content.strip()
+    except Exception as e:
+        advice = f"OpenAI error: {e}"
+    advice_log.append({"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "text": advice})
+    table_update = gr.update(value=advice_table_data())
+    return advice, table_update
+
+
     except Exception as e:
         return f"Trade error: {e}"
 
@@ -404,6 +449,14 @@ def search_codes(prompt, image_path):
                     {"role": "system", "content": "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."},
                     {"role": "user", "content": prompt},
                 ]
+        advice_btn = gr.Button("주식투자 조언받기")
+        advice_result = gr.Textbox(label="조언 결과")
+    with gr.Tab("조언 기록"):
+        advice_table = gr.Dataframe(headers=["시간", "조언"], interactive=False, value=advice_table_data())
+        advice_last = gr.Textbox(label="최근 조언", interactive=False)
+
+    advice_btn.click(get_advice, None, [advice_result, advice_table, advice_last])
+
                 model = "gpt-3.5-turbo"
             resp = client.chat.completions.create(
                 model=model,
