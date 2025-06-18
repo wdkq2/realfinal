@@ -34,7 +34,6 @@ TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai_key = OPENAI_API_KEY
 
-
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
 
@@ -45,7 +44,6 @@ portfolio = {}
 trade_history = []
 current_scenario = None
 advice_log = []
-
 _token_cache = {}
 TOKEN_BUFFER_SECONDS = 60
 
@@ -70,7 +68,9 @@ def scenario_options():
 def advice_table_data():
     """Return list representation of advice log."""
     return [[a["time"], a["text"]] for a in advice_log]
-oken():
+
+def get_access_token():
+
     """Retrieve an access token for the trading API using /oauth2/tokenP."""
     global _token_cache
     now = datetime.utcnow()
@@ -404,14 +404,15 @@ def get_advice():
         if hasattr(openai, "OpenAI"):
             client = openai.OpenAI(api_key=openai_key)
             resp = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=messages,
                 timeout=10,
             )
         else:
             openai.api_key = openai_key
             resp = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
+
                 messages=messages,
                 timeout=10,
             )
@@ -421,6 +422,7 @@ def get_advice():
     advice_log.append({"time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "text": advice})
     table_update = gr.update(value=advice_table_data())
     return advice, table_update
+
 
 
 def search_codes(prompt, image_path):
@@ -440,13 +442,15 @@ def search_codes(prompt, image_path):
                     content.append({"type": "text", "text": "이미지를 설명해줘."})
                 content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
                 messages = [{"role": "user", "content": content}]
-                model = "gpt-4o"
+                model = "gpt-4o-mini"
             else:
                 messages = [
-                    {"role": "system", "content": "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."},
+                    {"role": "system", "content": "당신은 주식 전문가입니다. 사용자가 물어보는 주식에 대한 질문의 의도를 파악하세요. 만약 사진이 첨부되면 해당 사진을 사용자가 이해할 수 있게 쉽게 설명하세요. 그외에는 사용자 질문에 대한 간단한 설명과 추천 주식과 이유를 제공하세요."},
                     {"role": "user", "content": prompt},
                 ]
-                model = "gpt-3.5-turbo"
+                model = "gpt-4o-mini"
+
+
             resp = client.chat.completions.create(
                 model=model,
                 messages=messages,
@@ -457,8 +461,9 @@ def search_codes(prompt, image_path):
             if image_path:
                 return "현재 openai 패키지가 이미지 입력을 지원하지 않습니다."
             resp = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "system", "content": "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."}, {"role": "user", "content": prompt}],
+                model="gpt-4o-mini",
+                messages=[{"role": "system", "content": "당신은 주식 전문가입니다. 사용자가 물어보는 주식에 대한 질문의 의도를 파악하세요. 만약 사진이 첨부되면 해당 사진을 사용자가 이해할 수 있게 쉽게 설명하세요. 그외에는 사용자 질문에 대한 간단한 설명과 추천 주식과 이유를 제공하세요."}, {"role": "user", "content": prompt}],
+
                 timeout=10,
             )
         return resp.choices[0].message.content.strip()
@@ -476,7 +481,6 @@ with gr.Blocks() as demo:
         scenario_news = gr.Textbox(label="뉴스 결과", visible=False)
         advice_btn = gr.Button("주식투자 조언받기")
         advice_result = gr.Textbox(label="조언 결과")
-
         news_show_btn.click(show_scenario_news, scenario_select, scenario_news)
         news_close_btn.click(hide_news, None, scenario_news)
 
@@ -511,8 +515,6 @@ with gr.Blocks() as demo:
         advice_last = gr.Textbox(label="최근 조언", interactive=False)
 
     advice_btn.click(get_advice, None, [advice_result, advice_table, advice_last])
-
-
     gr.Markdown(
         "NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 설정하면 네이버 뉴스 API를 사용합니다. 또한 DART_API_KEY와 TRADE_API_KEY, TRADE_API_URL을 지정하면 실거래 API를 호출합니다."
 
