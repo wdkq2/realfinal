@@ -377,13 +377,13 @@ def trade_current():
             "name": current_scenario["name"],
             "qty": current_scenario["qty"],
             "price": current_scenario["price"],
-            "total": total,
-        })
-        current_scenario = None
-    data = [[h["time"], h["scenario"], h["symbol"], h["name"], h["qty"], h["price"], h["total"]] for h in trade_history]
-    return msg, data
-
-
+                model="gpt-4o-mini",
+                model="gpt-4o-mini",
+                model = "gpt-4o-mini"
+                    {"role": "system", "content": "당신은 주식 전문가입니다. 사용자가 물어보는 주식에 대한 질문의 의도를 파악하세요. 만약 사진이 첨부되면 해당 사진을 사용자가 이해할 수 있게 쉽게 설명하세요. 그외에는 사용자 질문에 대한 간단한 설명과 추천 주식과 이유를 제공하세요."},
+                model = "gpt-4o-mini"
+                model="gpt-4o-mini",
+                messages=[{"role": "system", "content": "당신은 주식 전문가입니다. 사용자가 물어보는 주식에 대한 질문의 의도를 파악하세요. 만약 사진이 첨부되면 해당 사진을 사용자가 이해할 수 있게 쉽게 설명하세요. 그외에는 사용자 질문에 대한 간단한 설명과 추천 주식과 이유를 제공하세요."}, {"role": "user", "content": prompt}],
 def get_advice():
     """Call OpenAI with trade history and store the advice."""
     if not openai_key:
