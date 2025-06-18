@@ -28,10 +28,13 @@ TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
 
-TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411-01")
+
+TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "50139411")
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai_key = OPENAI_API_KEY
+
+
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
 
@@ -416,6 +419,7 @@ def search_codes(prompt, image_path):
                 messages=[{"role": "system", "content": "너는 주식전문가야. 상대방 주식에 대한 고민에 대해 자세한 답변을 한글로 해줘."}, {"role": "user", "content": prompt}],
                 timeout=10,
             )
+
         return resp.choices[0].message.content.strip()
     except Exception as e:
         return f"OpenAI error: {e}"
@@ -457,6 +461,7 @@ with gr.Blocks() as demo:
         search_btn = gr.Button("검색")
         results = gr.Textbox(label="검색 결과")
         search_btn.click(search_codes, [feature_query, image_input], results)
+
 
     gr.Markdown(
         "NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 설정하면 네이버 뉴스 API를 사용합니다. 또한 DART_API_KEY와 TRADE_API_KEY, TRADE_API_URL을 지정하면 실거래 API를 호출합니다."
